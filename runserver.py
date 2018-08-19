@@ -20,7 +20,7 @@ rhyme_style = ['AAAA', 'ABAB', '_A_A', 'ABBA']
 
 
 @app.route('/generate/verse', methods=['GET'])
-def index():
+def generate_verse():
     # GET params
     text = request.args.get('text', '')
     num_sentence = int(request.args.get('num_sentence', ''))
@@ -28,15 +28,16 @@ def index():
     rhyme_mode = int(request.args.get('rhyme_mode', '1'))
     rhyme_style_id = int(request.args.get('rhyme_style_id', '0'))
 
+    # now return the first sentence along with generated sentences
     model.user_input(
         text=text,
-        sample_size=num_sentence,
+        sample_size=num_sentence - 1,
         target_long=target_long,
         rhyme_mode=rhyme_mode,
         rhyme_style=rhyme_style[rhyme_style_id]
     )
-    sentences = model.generator()
-    return jsonify(list(sentences))
+    sentences = [text] + list(model.generator())
+    return jsonify(sentences)
 
 
 if __name__ == "__main__":
