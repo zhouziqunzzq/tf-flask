@@ -19,25 +19,27 @@ model = None
 rhyme_style = ['AAAA', 'ABAB', '_A_A', 'ABBA']
 
 
-@app.route('/generate/verse', methods=['GET'])
+@app.route('/generate/verse', methods=['POST'])
 def generate_verse():
-    # GET params
-    text = request.args.get('text', '')
-    num_sentence = int(request.args.get('num_sentence', ''))
-    target_long = int(request.args.get('target_length', ''))
-    rhyme_mode = int(request.args.get('rhyme_mode', '1'))
-    rhyme_style_id = int(request.args.get('rhyme_style_id', '0'))
+    if request.method == 'POST':
+        # POST params
+        text = str(request.form['text'])
+        num_sentence = int(request.form['num_sentence'])
+        target_long = int(request.form['target_length'])
+        rhyme_mode = int(request.form['rhyme_mode'])
+        rhyme_style_id = int(request.form['rhyme_style_id'])
 
-    # now return the first sentence along with generated sentences
-    model.user_input(
-        text=text,
-        sample_size=num_sentence - 1,
-        target_long=target_long,
-        rhyme_mode=rhyme_mode,
-        rhyme_style=rhyme_style[rhyme_style_id]
-    )
-    sentences = [text] + list(model.generator())
-    return jsonify(sentences)
+        # now return the first sentence along with generated sentences
+        model.user_input(
+            text=text,
+            sample_size=num_sentence - 1,
+            target_long=target_long,
+            rhyme_mode=rhyme_mode,
+            rhyme_style=rhyme_style[rhyme_style_id]
+        )
+        sentences = [text] + list(model.generator())
+        return jsonify(sentences)
+    return 'POST method is required'
 
 
 if __name__ == "__main__":
