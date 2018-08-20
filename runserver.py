@@ -5,23 +5,28 @@
 # @Date  : 18-8-19 下午5:56
 # @Desc  : Run flask server
 
+from gevent import monkey
+
+monkey.patch_all()
 import os
 from flask import Flask, request, jsonify
 from gevent import pywsgi
 import configparser
 from generate_new import *
-from gevent import monkey
-
-monkey.patch_all()
 
 app = Flask(__name__)
-model = None
 rhyme_style = ['AAAA', 'ABAB', '_A_A', 'ABBA']
 
 
 @app.route('/generate/verse', methods=['POST'])
 def generate_verse():
     if request.method == 'POST':
+        # load model
+        print("Loading model...")
+        model = Gen()
+        model.init_session()
+        model.restore_model('./checkpoint')
+
         # POST params
         text = str(request.form['text'])
         num_sentence = int(request.form['num_sentence'])
@@ -43,11 +48,6 @@ def generate_verse():
 
 
 if __name__ == "__main__":
-    # load model
-    print("Loading model...")
-    model = Gen()
-    model.restore_model('./checkpoint')
-
     # load config from web.ini
     cp = configparser.ConfigParser()
     cp.read('web.ini')

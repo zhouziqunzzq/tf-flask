@@ -9,6 +9,9 @@ from generate_utils import Beam, sort_prob, RhymeChecker, get_next_sentence_rhym
 
 class Gen(object):
     def __init__(self):
+        # create session
+        self.sess = tf.Session()
+
         # Load model config
         self.config = config_reader()
         self.model_path = self.config['model_path']
@@ -34,12 +37,16 @@ class Gen(object):
         # saver.restore(self.sess, tf.train.latest_checkpoint(model_path))
 
     def __del__(self):
+        print("Closing session...")
         self.sess.close()
 
     def restore_model(self, model_path):
         saver = tf.train.Saver()
-        self.sess = tf.Session()
         saver.restore(self.sess, tf.train.latest_checkpoint(model_path))
+
+    def init_session(self):
+        print("Initializing global variables...")
+        self.sess.run([tf.global_variables_initializer()])
 
     def user_input(self, text, rhyme_style, sample_size, target_long=8, rhyme_mode=1, rhyme_change_gap=4,
                    beam_width=20):
