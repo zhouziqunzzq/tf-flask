@@ -18,7 +18,6 @@ import configparser
 from generate_new import *
 
 app = Flask(__name__)
-cache = SimpleCache()
 
 model = None
 rhyme_style = ['AAAA', 'ABAB', '_A_A', 'ABBA']
@@ -52,13 +51,7 @@ def generate_verse():
         sentences = [text] + list(model.generator())
 
         # temporary restart solution
-        restart_counter = cache.get('restart_counter')
-        restart_threshold = cache.get('restart_threshold')
-        if restart_counter == restart_threshold - 1:
-            print("Reaching restart threshold, suicide...")
-            _thread.start_new_thread(start_suicide)
-        restart_counter += 1
-        cache.set('restart_counter', restart_counter)
+        _thread.start_new_thread(start_suicide)
 
         return jsonify(sentences)
     return 'POST method is required'
@@ -76,8 +69,6 @@ if __name__ == "__main__":
     cp.read('web.ini')
     ip = str(cp.get('web', 'ip'))
     port = int(cp.get('web', 'port'))
-    cache.set('restart_counter', 0)
-    cache.set('restart_threshold', int(cp.get('restart', 'threshold')))
 
     # start flask server
     print("Starting web server at {}:{}".format(ip, port))
