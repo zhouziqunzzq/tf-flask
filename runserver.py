@@ -9,24 +9,30 @@ from gevent import monkey
 
 monkey.patch_all()
 import os
+import _thread
+import time
 from flask import Flask, request, jsonify
+from werkzeug.contrib.cache import SimpleCache
 from gevent import pywsgi
 import configparser
 from generate_new import *
 
 app = Flask(__name__)
+cache = SimpleCache()
+
+model = None
 rhyme_style = ['AAAA', 'ABAB', '_A_A', 'ABBA']
+
+
+def start_suicide():
+    time.sleep(1)
+    print("Reaching restart threshold, exiting...")
+    exit(0)
 
 
 @app.route('/generate/verse', methods=['POST'])
 def generate_verse():
     if request.method == 'POST':
-        # load model
-        print("Loading model...")
-        model = Gen()
-        model.init_session()
-        model.restore_model('./checkpoint')
-
         # POST params
         text = str(request.form['text'])
         num_sentence = int(request.form['num_sentence'])
@@ -35,6 +41,7 @@ def generate_verse():
         rhyme_style_id = int(request.form['rhyme_style_id'])
 
         # now return the first sentence along with generated sentences
+        global model
         model.user_input(
             text=text,
             sample_size=num_sentence - 1,
@@ -43,16 +50,34 @@ def generate_verse():
             rhyme_style=rhyme_style[rhyme_style_id]
         )
         sentences = [text] + list(model.generator())
+
+        # temporary restart solution
+        restart_counter = cache.get('restart_counter')
+        restart_threshold = cache.get('restart_threshold')
+        if restart_counter == restart_threshold - 1:
+            print("Reaching restart threshold, suicide...")
+            _thread.start_new_thread(start_suicide)
+        restart_counter += 1
+        cache.set('restart_counter', restart_counter)
+
         return jsonify(sentences)
     return 'POST method is required'
 
 
 if __name__ == "__main__":
+    # load model
+    print("Loading model...")
+    model = Gen()
+    model.init_session()
+    model.restore_model('./checkpoint')
+
     # load config from web.ini
     cp = configparser.ConfigParser()
     cp.read('web.ini')
     ip = str(cp.get('web', 'ip'))
     port = int(cp.get('web', 'port'))
+    cache.set('restart_counter', 0)
+    cache.set('restart_threshold', int(cp.get('restart', 'threshold')))
 
     # start flask server
     print("Starting web server at {}:{}".format(ip, port))
